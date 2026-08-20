@@ -289,6 +289,7 @@ function clause write_CSR((0x310, value) if xlen == 32) = { mstatus = legalize_m
 bitfield Hstatus : bits(64) = {
   HUPMM : 49 .. 48,
   VSXL  : 33 .. 32,
+  HUKTE : 24,
   VTSR  : 22,
   VTW   : 21,
   VTVM  : 20,
