@@ -701,7 +701,7 @@ function is_svukte_qualified(
   let ukte_enable = if (forced_virt & cur_privilege == User) then hstatus[HUKTE] else read_senvcfg()[UKTE];
 
   mode != Bare &
-    eff_priv == User &
+    (eff_priv == User | eff_priv == VirtualUser) &
     ukte_enable == 0b1
 }
 
