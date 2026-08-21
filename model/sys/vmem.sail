@@ -693,21 +693,25 @@ private function build_exception_context(
 
 // Checks if an access is Svukte-qualified under the Svukte extension. If the extension is not
 // enabled, the UKTE bit of senvcfg is read-only-zero, so accesses will never be qualified.
-function is_svukte_qualified(effPriv : Privilege, is_hva: bool) -> bool = {
-  let ukte_enable = if is_hva then hstatus[HUKTE] else read_senvcfg()[UKTE];
+function is_svukte_qualified(
+  eff_priv : Privilege,
+  mode: SATPMode,
+  forced_virt: bool
+) -> bool = {
+  let ukte_enable = if (forced_virt & cur_privilege == User) then hstatus[HUKTE] else read_senvcfg()[UKTE];
 
-  satp_mode(effPriv) != Bare &
-    effPriv == User &
+  mode != Bare &
+    eff_priv == User &
     ukte_enable == 0b1
 }
 
 // NOTE: We must pass the effective privilege level, since hypervisor
 // instructions may execute with a different effective privilege.
 function translateAddr_eff_priv(
-  gva    : virtaddr,
-  access : MemoryAccessType(mem_payload),
-  p      : Privilege,
-  is_hva : bool, // set if the access is a hypervisor virtual access
+  gva         : virtaddr,
+  access      : MemoryAccessType(mem_payload),
+  p           : Privilege,
+  forced_virt : bool, // set if the access is a hypervisor virtual access
 ) -> TR_Result(physaddr, ExceptionContext) = {
 
 
@@ -739,7 +743,7 @@ function translateAddr_eff_priv(
   // Svukte-qualified accesses are invalid if their virtual address is >= 2^(SXLEN-1).
   // This check uses this model's assumption that SXLEN == XLEN, and would need reworking if that
   // assumption were to change in the future.
-  if is_svukte_qualified(p, is_hva) & (bits_of(gva)[xlen - 1] == bitone) then {
+  if is_svukte_qualified(p, mode, forced_virt) & (bits_of(gva)[xlen - 1] == bitone) then {
     return Err(struct {
       trap = translationException(access, PTW_Invalid_Addr()),
       excinfo_is_gva = is_virtual_access,
